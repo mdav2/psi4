@@ -36,6 +36,7 @@ from psi4.driver import p4util
 from psi4.driver import constants
 from psi4.driver.p4util.exceptions import ConvergenceError, ValidationError
 from psi4 import core
+from .smart_scf import *
 
 from .efp import get_qm_atoms_opts, modify_Fock_permanent, modify_Fock_induced
 
@@ -105,6 +106,9 @@ def scf_initialize(self):
 
     self.iteration_ = 0
     efp_enabled = hasattr(self.molecule(), 'EFP')
+
+    self.energy_history=[]
+    self.Drms_history=[]
 
     if core.get_option('SCF', "PRINT") > 0:
         core.print_out("  ==> Pre-Iterations <==\n\n")
@@ -187,6 +191,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     Drms = 0.0
     while True:
         self.iteration_ += 1
+        print(self.iteration_)
 
         diis_performed = False
         soscf_performed = False
@@ -249,6 +254,10 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         Ediff = SCFE - SCFE_old
         SCFE_old = SCFE
 
+        self.energy_history.append(self.get_energies("Total Energy"))
+        self.Drms_history.append(Drms)
+        print(self.Drms_history)
+        print(self.energy_history)
         status = []
 
         # We either do SOSCF or DIIS
@@ -295,6 +304,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
                 add_to_diis_subspace = True
 
             Drms = self.compute_orbital_gradient(add_to_diis_subspace, core.get_option('SCF', 'DIIS_MAX_VECS'))
+            print('scf_procdrms'.format(Drms))
 
             if (self.diis_enabled_
                     and self.iteration_ >= self.diis_start_ + core.get_option('SCF', 'DIIS_MIN_VECS') - 1):
@@ -332,12 +342,21 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE")
             self.damping_update(damping_percentage * 0.01)
             status.append("DAMP={}%".format(round(damping_percentage)))
-        if (smart_enabled and self.iteration_ > 1 and self.iteration_ < 3):
+        try:
+            print(core.get_option('SCF','GUESS'))
+        except:
+            pass
+
+        if (smart_enabled and self.iteration_ > 1 and self.iteration_ < 5):
             try:
                 damping_percentage = core.get_option('SCF',"DAMPING_PERCENTAGE")
-            
+            except:
+                pass
+            print('SMARTY')
+            damping_percentage=75.0
+            print(damping_percentage)
             self.damping_update(damping_percentage * 0.01)
-
+            status.append("DAMP={}%".format(round(damping_percentage)))
         if verbose > 3:
             self.Ca().print_out()
             self.Cb().print_out()
@@ -345,6 +364,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             self.Db().print_out()
 
         # Print out the iteration
+        self.check_osc(Ediff, Drms)
         core.print_out("   @%s%s iter %3d: %20.14f   %12.5e   %-11.5e %s\n" %
                        ("DF-" if is_dfjk else "", reference, self.iteration_, SCFE, Ediff, Drms, '/'.join(status)))
 
