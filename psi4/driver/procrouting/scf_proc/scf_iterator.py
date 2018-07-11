@@ -163,6 +163,7 @@ def scf_initialize(self):
 def scf_iterate(self, e_conv=None, d_conv=None):
 
     is_dfjk = core.get_global_option('SCF_TYPE').endswith('DF')
+    smart_enabled=True #temp for development
     verbose = core.get_option('SCF', "PRINT")
     reference = core.get_option('SCF', "REFERENCE")
 
@@ -331,6 +332,11 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE")
             self.damping_update(damping_percentage * 0.01)
             status.append("DAMP={}%".format(round(damping_percentage)))
+        if (smart_enabled and self.iteration_ > 1 and self.iteration_ < 3):
+            try:
+                damping_percentage = core.get_option('SCF',"DAMPING_PERCENTAGE")
+            
+            self.damping_update(damping_percentage * 0.01)
 
         if verbose > 3:
             self.Ca().print_out()
