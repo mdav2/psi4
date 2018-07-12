@@ -256,8 +256,8 @@ def scf_iterate(self, e_conv=None, d_conv=None):
 
         self.energy_history.append(self.get_energies("Total Energy"))
         self.Drms_history.append(Drms)
-        print(self.Drms_history)
-        print(self.energy_history)
+        print("Drms history:\n{}\n".format(self.Drms_history))
+        print("Energy history:\n{}\n".format(self.energy_history))
         status = []
 
         # We either do SOSCF or DIIS
@@ -784,3 +784,21 @@ def field_fn(xyz):
     field = np.reshape(field, 3 * npt)
 
     return field
+def _validate_smart():
+    """Sanity-check smartSCF options
+
+    Raises
+    ------
+    ValidationError
+        If soscf, damping, DIIS, or other convergence settings don't match
+        between user defined settings and smart recommendations, do:
+            smart=0 -> no action, smart is desabledchange local.
+            smart=1 -> resolve diff by falling to smartscf recommendations, print a notice in output.
+            smart>=2 -> resolve diff by falling back to user defined settings
+                        for non-smartscf defined values.
+    Returns
+    -------
+    bool
+        whether smart was able to resolve differences. Changes local scfiter options if discrepancy. 
+    """
+    pass
