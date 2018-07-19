@@ -35,7 +35,24 @@ class smart_solver():
         """
         self.update_E_history()
         self.update_Drms_history(Drms)
-        self.initdamp()
+        if not self.initdamp():
+            self.noise_damp()
+            #self.osc_damp
+            self.trailing_conv()
+            
+        
+    def dyn_damp(self):
+        #dynamic damping based off energy and drms history
+
+    def noise_damp(self):
+        #for automatically detecting noisy scf and switching on dynamic damping
+
+    def trailing_conv(self):
+        #for auto detect trailing convergence and switching on SOSCF
+
+    def osc_detect(self):
+        #for auto detect oscillations (two point first, later others)
+        #Wouldn't this be picked up by noise_damp anyway?
 
     def smart_guess(self):
         basis_guess = core.get_option('SCF',"BASIS_GUESS")
@@ -46,11 +63,16 @@ class smart_solver():
             core.set_option('SCF',"BASIS_GUESS",True) 
 
     def initdamp(self):
+        #decides whether to damp initial iterations in SCF and returns 
+        #True if initial damping occured, False otherwise
+        if self.wfn.iteration > 4:
+            return False
         guess_opt = core.get_option('SCF',"GUESS")
         if (guess_opt == 'SAD' or guess_opt == 'GWH' or guess_opt == 'CORE')\
             and (self.wfn.iteration_ < 4 and self.wfn.iteration_ > 1):
             self.wfn.damping_enabled=self.opt_dict['init_damp']
             self.wfn.damping_percentage=self.opt_dict['init_damp_percentage']
+            return True
 
     def update_E_history(self):
         self.E_history.append(self.wfn.get_energies("Total Energy"))
