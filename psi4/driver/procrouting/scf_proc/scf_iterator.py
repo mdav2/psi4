@@ -187,6 +187,8 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     frac_enabled = _validate_frac()
     efp_enabled = hasattr(self.molecule(), 'EFP')
 
+    #if self.damping_enabled:
+        #self.damping_percentage = core.get_option("SCF",'DAMPING_PERCENTAGE')
 
     if self.iteration_ < 2:
         core.print_out("  ==> Iterations <==\n\n")
@@ -204,10 +206,6 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         diis_performed = False
         soscf_performed = False
         self.frac_performed_ = False
-        self.damping_enabled = _validate_damping() #moved so re-evaluated each iteration
-        self.soscf_enabled = _validate_soscf() #moved so re-eval each iter
-        if self.damping_enabled:
-            self.damping_percentage = core.get_option("SCF",'DAMPING_PERCENTAGE')
         #self.MOM_performed_ = False  # redundant from common_init()
 
         self.save_density_and_energy()
@@ -348,21 +346,13 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         core.set_variable("SCF ITERATION ENERGY", SCFE)
 
         # After we've built the new D, damp the update
-        if (self.damping_enabled and self.iteration_ > 1 and Drms > core.get_option('SCF', 'DAMPING_CONVERGENCE')):
+        if (self.damping_enabled and (self.iteration_ > 1 or\
+                core.get_option('SCF', "GUESS") == 'SAD')
+                and Drms > core.get_option('SCF', 'DAMPING_CONVERGENCE')):
             #damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE")
             self.damping_update(self.damping_percentage * 0.01)
             status.append("DAMP={}%".format(round(self.damping_percentage)))
 
-        #if (smart_enabled and self.iteration_ > 1 and self.iteration_ < 5):
-        #    try:
-        #        damping_percentage = core.get_option('SCF',"DAMPING_PERCENTAGE")
-        #    except:
-        #        pass
-        #    print('SMARTY')
-        #    damping_percentage=75.0
-        #    print(damping_percentage)
-        #    self.damping_update(damping_percentage * 0.01)
-        #    status.append("DAMP={}%".format(round(damping_percentage)))
         if verbose > 3:
             self.Ca().print_out()
             self.Cb().print_out()
