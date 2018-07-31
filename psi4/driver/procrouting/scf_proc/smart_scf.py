@@ -55,7 +55,13 @@ class smart_solver():
         self.E_history=[]
         self.Drms_history=[]
         self.smart_level=self.wfn.smart_level #not necessary
-        self.opt_dict=smart_options_dict[self.smart_level] #not necessary
+        self.opt_dict=smart_opt_dict[self.smart_level] #not necessary
+        self.user_vals={
+                "frac_enabled":self.wfn.frac_enabled,
+                "damping_enabled":self.wfn.damping_enabled,
+                "soscf_enabled":self.wfn.soscf_enabled,
+                "MAXITER":core.get_option('SCF','MAXITER')
+                } 
         pass
 
     def smart_iter(self,SCFE,Drms):
@@ -67,17 +73,30 @@ class smart_solver():
         if not self.initdamp():
             self.trailing_conv()
         
+    def smart_guess(self):
+        #!Q: Do we want basis_guess to be default smart behavior?
+        do_castup = self.opt_dict["CASTUP"]
+        if do_castup:
+            castup_basis = self.opt_dict["CASTUP_BASIS"]
+            core.set_option('SCF',"BASIS_GUESS",True) 
+
     def trailing_conv(self):
-        #for auto detect trailing convergence and switching on SOSCF
+        """for auto detect trailing convergence and switching on SOSCF
+        both 15 and 1E-8 were pulled out of a hat
+        damping percentage 25 is included to catch oscillatory cases as well
+        """
         if self.wfn.iteration_ > 15 and core.get_options('SCF','E_CONVERGENCE') < 1.0E-8:
             self.wfn.soscf_enabled = True
             self.wfn.damping_enabled = True
             self.wfn.damping_percentage = 25
-        pass
+            return True
+        else:
+            return False
 
     def initdamp(self):
-        #decides whether to damp initial iterations in SCF and returns 
-        #True if initial damping occured, False otherwise
+        """decides whether to damp initial iterations in SCF and returns 
+        True if initial damping occured, False otherwise
+        """
         if self.wfn.iteration_ > 4:
             return False
         guess_opt = core.get_option('SCF',"GUESS")
@@ -86,11 +105,16 @@ class smart_solver():
             self.wfn.damping_percentage=self.opt_dict['init_damp_percentage']
             return True
 
-    def smart_guess(self):
-        do_castup = self.opt_dict["CASTUP"]
-        if do_castup:
-            castup_basis = self.opt_dict["CASTUP_BASIS"]
-            core.set_option('SCF',"BASIS_GUESS",True) 
+    def dyn_damp(self,Drms_target=5E-4):
+        """
+        Offers dynamic damping to hit a on a target Drms value.
+        Perhaps 5E-4 is conservative - can be modified with smart_opt_dict
+        Default is 5E-4, source: a hat
+        """
+        if self.wfn.iterations_ < 5:
+            return 0 
+        elif self.Drms_history[-1] > Drms_target:
+            self.wfn.damping_percentage = Drms_target/self.Drms_history[-1]
 
     def update_E_history(self):
         self.E_history.append(self.wfn.get_energies("Total Energy"))
@@ -119,12 +143,12 @@ class smart_solver():
 
         pass
 
-#smart_options_dict is just an idea for adding 'tiers' of convergence\
+#smart_opt_dict is just an idea for adding 'tiers' of convergence\
         #tricks, where the key is the 'smart_level' and the value is another\
         #dictionary of various convergence options and/or values for things\
         #like damping percentage etc. 
 
-smart_options_dict = {
+smart_opt_dict = {
             1:
             {
                 "CASTUP":True,

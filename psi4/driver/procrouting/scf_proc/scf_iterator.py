@@ -125,12 +125,6 @@ def scf_initialize(self):
     #smart_enabled=core.get_option('SCF',"smartscf")
     #if core.get_option('SCF', "SMARTSCF"):
     #    if core.get_option('
-    self.smart_level=1 #How do I get a local scf option for this?
-    if self.smart_level:
-        self.smart_solver=smart_scf.smart_solver(self)
-        core.print_out('Using smartSCF, by M.M. Davis and M. Estep\n\n')
-        self.smart_solver.smart_guess()
-    print(core.get_option('SCF',"BASIS_GUESS"))
 
     if self.attempt_number_ == 1:
         mints = core.MintsHelper(self.basisset())
@@ -187,8 +181,16 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     frac_enabled = _validate_frac()
     efp_enabled = hasattr(self.molecule(), 'EFP')
 
+
+    smart_enabled=core.get_option('SCF','SMART_SCF')
+    print(smart_enabled)
+    if smart_enabled:
+        self.smart_solver=smart_scf.smart_solver(self)
+        core.print_out('Using smartSCF, by M.M. Davis and M. Estep\n\n')
+        self.smart_solver.smart_guess()
+
     #if self.damping_enabled:
-        #self.damping_percentage = core.get_option("SCF",'DAMPING_PERCENTAGE')
+    #    self.damping_percentage = core.get_option("SCF",'DAMPING_PERCENTAGE')
 
     if self.iteration_ < 2:
         core.print_out("  ==> Iterations <==\n\n")
@@ -265,9 +267,10 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         SCFE_old = SCFE
         print(self.soscf_enabled)
         status = []
-        self.smart_solver.smart_iter(SCFE,Drms)
 
-        print(self.damping_enabled)
+        if smart_enabled:
+            self.smart_solver.smart_iter(SCFE,Drms)
+
         # We either do SOSCF or DIIS
         if (self.soscf_enabled and (self.iteration_ > 3) and (Drms < core.get_option('SCF', 'SOSCF_START_CONVERGENCE'))):
 
@@ -346,10 +349,12 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         core.set_variable("SCF ITERATION ENERGY", SCFE)
 
         # After we've built the new D, damp the update
+        #MMD: SmartSCF damps through here, just by modifying self.damping_enabled\
+                #and self.damping_percentage if needed.
         if (self.damping_enabled and (self.iteration_ > 1 or\
-                core.get_option('SCF', "GUESS") == 'SAD')
+                core.get_option('SCF', "GUESS") == 'SAD')\
                 and Drms > core.get_option('SCF', 'DAMPING_CONVERGENCE')):
-            #damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE")
+            #damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE") 
             self.damping_update(self.damping_percentage * 0.01)
             status.append("DAMP={}%".format(round(self.damping_percentage)))
 
