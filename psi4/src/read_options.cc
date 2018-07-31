@@ -1377,6 +1377,11 @@ int read_options(const std::string &name, Options & options, bool suppress_print
     options.add_bool("ONEPOT_GRID_READ", false);
 
 
+    /*- SUBSECTION SmartSCF -*/
+    /*- Run SCF with SmartSCF enabled? */
+    options.add_bool("SMART_SCF",false);
+    /*- Levels of SmartSCF, 0=disabled, 1=full control, higher=>more conservative*/
+    options.add_int("SMART_LEVEL",0);
     /*- SUBSECTION Parallel Runtime -*/
 
     /*- The dimension sizes of the processor grid !expert -*/
