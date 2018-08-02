@@ -265,14 +265,13 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         self.set_energies("Total Energy", SCFE)
         Ediff = SCFE - SCFE_old
         SCFE_old = SCFE
-        print(self.soscf_enabled)
         status = []
 
         if smart_enabled:
             self.smart_solver.smart_iter(SCFE,Drms)
 
         # We either do SOSCF or DIIS
-        if (self.soscf_enabled and (self.iteration_ > 3) and (Drms < core.get_option('SCF', 'SOSCF_START_CONVERGENCE'))):
+        if (soscf_enabled and (self.iteration_ > 3) and (Drms < core.get_option('SCF', 'SOSCF_START_CONVERGENCE'))):
 
             Drms = self.compute_orbital_gradient(False, core.get_option('SCF', 'DIIS_MAX_VECS'))
             diis_performed = False
@@ -351,7 +350,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         # After we've built the new D, damp the update
         #MMD: SmartSCF damps through here, just by modifying self.damping_enabled\
                 #and self.damping_percentage if needed.
-        if (self.damping_enabled and (self.iteration_ > 1 or\
+        if (damping_enabled and (self.iteration_ > 1 or\
                 core.get_option('SCF', "GUESS") == 'SAD')\
                 and Drms > core.get_option('SCF', 'DAMPING_CONVERGENCE')):
             #damping_percentage = core.get_option('SCF', "DAMPING_PERCENTAGE") 
@@ -373,7 +372,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             continue
 
         # if a fractional occupation is requested but not started, don't stop yet
-        if self.frac_enabled and not self.frac_performed_:
+        if frac_enabled and not self.frac_performed_:
             continue
 
         # Call any postiteration callbacks
