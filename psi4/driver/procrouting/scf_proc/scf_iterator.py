@@ -250,7 +250,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
 
         status = []
 
-        # We either do SOSCF or DIIS
+        # We either do SOSCF, DIIS, or ODA
         if (soscf_enabled and (self.iteration_ > 3) and (Drms < core.get_option('SCF', 'SOSCF_START_CONVERGENCE'))):
 
             Drms = self.compute_orbital_gradient(False, core.get_option('SCF', 'DIIS_MAX_VECS'))
@@ -313,6 +313,11 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             core.timer_on("HF: Form C")
             self.form_C()
             core.timer_off("HF: Form C")
+        if (not soscf_performed and not diis_performed):
+            core.timer_on("HF: ODA")
+            oda_perfomed = False
+            if self.oda_enabled_:
+            
 
         if self.MOM_performed_:
             status.append("MOM")
