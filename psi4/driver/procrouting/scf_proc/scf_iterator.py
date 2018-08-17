@@ -388,10 +388,14 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             Fa = (1 - l_a)*Fa_int + l_a*Fa_old
             Fb = (1 - l_b)*Fb_int + l_b*Fb_old
 
-            Da = core.Matrix.from_array(Da)
-            Db = core.Matrix.from_array(Db)
-            Fa = core.Matrix.from_array(Fa)
-            Fb = core.Matrix.from_array(Fb)
+            self.Da().nph[:] = Da
+            self.Db().nph[:] = Db
+            self.Fa().nph[:] = Fa
+            self.Fb().nph[:] = Fb
+            #Da = core.Matrix.from_array(Da)
+            #Db = core.Matrix.from_array(Db)
+            #Fa = core.Matrix.from_array(Fa)
+            #Fb = core.Matrix.from_array(Fb)
 
             #self.Da() = Da
             #self.Db() = Db 
