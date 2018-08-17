@@ -1308,6 +1308,8 @@ int read_options(const std::string &name, Options & options, bool suppress_print
     options.add("MOM_VIR", new ArrayType());
     /*- Do use second-order SCF convergence methods? -*/
     options.add_bool("SOSCF", false);
+    /*- Do use Optimal Damping Algorithm methods? -*/
+    options.add_bool("ODA",false);
     /*- When to start second-order SCF iterations based on gradient RMS. -*/
     options.add_double("SOSCF_START_CONVERGENCE", 1.0E-2);
     /*- Minimum number of second-order microiterations to perform. -*/

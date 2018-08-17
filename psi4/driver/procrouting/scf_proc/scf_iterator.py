@@ -172,6 +172,7 @@ def scf_iterate(self, e_conv=None, d_conv=None):
     self.diis_start_ = core.get_option('SCF', 'DIIS_START')
     damping_enabled = _validate_damping()
     soscf_enabled = _validate_soscf()
+    oda_enabled = _validate_oda()
     frac_enabled = _validate_frac()
     efp_enabled = hasattr(self.molecule(), 'EFP')
 
@@ -193,6 +194,17 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         #self.MOM_performed_ = False  # redundant from common_init()
 
         self.save_density_and_energy()
+         
+        #save previous Fock and Density matrices for ODA
+        if  oda_enabled:
+            print('Making old matrices')
+            Fa_old = self.Fa().to_array()[0]
+            Fb_old = self.Fb().to_array()[0]
+            Da_old = self.Da().to_array()[0]
+            Db_old = self.Db().to_array()[0]
+
+        #D_old = self.D().clone()
+      
 
         if efp_enabled:
             # EFP: Add efp contribution to Fock matrix
@@ -313,10 +325,6 @@ def scf_iterate(self, e_conv=None, d_conv=None):
             core.timer_on("HF: Form C")
             self.form_C()
             core.timer_off("HF: Form C")
-        if (not soscf_performed and not diis_performed):
-            core.timer_on("HF: ODA")
-            oda_perfomed = False
-            if self.oda_enabled_:
             
 
         if self.MOM_performed_:
@@ -328,6 +336,67 @@ def scf_iterate(self, e_conv=None, d_conv=None):
         core.timer_on("HF: Form D")
         self.form_D()
         core.timer_off("HF: Form D")
+
+        #ODA calculation!
+        if (not soscf_performed and not diis_performed) and oda_enabled:
+            print('Reached ODA calc')
+            Fa_int = self.Fa().to_array()[0]
+            print(Fa_old)
+            Fa_diff = Fa_int - Fa_old
+          
+            print('Made it past Fa_')
+            Fb_int = self.Fb().to_array()[0]
+            Fb_diff = Fb_int - Fb_old
+            print('Past Fb')
+            
+
+            print('Made it past Fa_diff')
+            Da_int = self.Da().to_array()[0]
+            Db_int = self.Db().to_array()[0]
+            Da_diff = Da_int - Da_old
+            Db_diff = Db_int - Db_old
+            print('Made it past Da_diff')
+
+            #Fa_new = self.Fa().clone()
+            #Fb_new = self.Fb().clone()
+            #Da_new = self.Da().clone()
+            #Db_new = self.Db().clone()
+            print(self.Da_)
+            
+       
+            #Da_new.subtract(Da_old)
+            print('Starting diagnostics')
+            s_a = np.matmul(Fa_old, Da_diff).trace()
+            s_b = np.matmul(Fb_old, Db_diff).trace()
+            print('s')
+            c_a = np.matmul(Fa_diff, Da_diff).trace()
+            c_b = np.matmul(Fb_diff, Db_diff).trace()
+            print('c')
+            if c_a <= -1*s_a/2:
+                l_a = 1
+            else:
+                l_a = -1*s_a/(2*c_a)
+
+            if c_b <= -1*s_b/2:
+                l_b = 1
+            else:
+                l_b = -1*s_b/(2*c_b)
+            print(self.variables())
+
+            Da = (1 - l_a)*Da_int + l_a*Da_old
+            Db = (1 - l_b)*Db_int + l_b*Db_old
+            Fa = (1 - l_a)*Fa_int + l_a*Fa_old
+            Fb = (1 - l_b)*Fb_int + l_b*Fb_old
+
+            Da = core.Matrix.from_array(Da)
+            Db = core.Matrix.from_array(Db)
+            Fa = core.Matrix.from_array(Fa)
+            Fb = core.Matrix.from_array(Fb)
+
+            #self.Da() = Da
+            #self.Db() = Db 
+            #self.Fa() = Fa
+            #self.Fb() = Fb
 
         core.set_variable("SCF ITERATION ENERGY", SCFE)
 
@@ -718,6 +787,11 @@ def _validate_soscf():
         if conv < 1.e-10:
             raise ValidationError('SCF SOSCF_CONV ({}) must be achievable'.format(conv))
 
+    return enabled
+
+def _validate_oda():
+    enabled = core.get_option('SCF', 'ODA')
+    
     return enabled
 
 
